@@ -97,7 +97,7 @@ def get_dataframe(xml_file, crypto=False):
 
 
 def get_competitor_mentions_information():
-    def visitor(content, cm):
+    def visitor(content, cm, tm, font_dict, font_size):
         y = cm[5]
         if 0 < y < 1008:
             raw_text.append(content)
