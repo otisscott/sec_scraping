@@ -97,7 +97,11 @@ def get_dataframe(xml_file, crypto=False):
 
 
 def get_competitor_mentions_information():
-    crd_lst = ['109330', '294670']
+    def visitor(content, cm, tm, font_dict, font_size):
+        y = cm[5]
+        if 0 < y < 1008:
+            raw_text.append(content)
+    crd_lst = ['294670']
     base_url = 'https://reports.adviserinfo.sec.gov/reports/ADV/'
     for crd_num in crd_lst:
         url = f'{base_url}{crd_num}/PDF/{crd_num}.pdf'
@@ -111,15 +115,15 @@ def get_competitor_mentions_information():
         vendors, vendor_descriptions = [], []
         text = ''
         for page in pdf.pages:
-            new_text = page.extract_text()
-            new_text = new_text.replace('\n', '')
-            new_text = ' '.join(new_text.split())
-            k = 0
-            for i in range(1, len(new_text)):
-                if text.endswith(new_text[:i]):
-                    k = i
-            overlap_removed = new_text[k:]
-            text += overlap_removed
+            raw_text = []
+            media_box = page.mediabox
+
+            min_pt = media_box.lower_left
+            max_pt = media_box.upper_right
+
+            page.extract_text(visitor_text=visitor)
+            new_text = ' '.join(raw_text)
+            text += new_text
         vendors += re.findall(get_vendor_name, text, re.DOTALL)
         vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
         print(vendors, vendor_descriptions)
