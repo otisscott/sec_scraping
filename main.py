@@ -97,7 +97,7 @@ def get_dataframe(xml_file, crypto=False):
 
 
 def get_competitor_mentions_information():
-    def visitor(content, cm, tm, font_dict, font_size):
+    def visitor(content, cm):
         y = cm[5]
         if 0 < y < 1008:
             raw_text.append(content)
@@ -116,17 +116,11 @@ def get_competitor_mentions_information():
         text = ''
         for page in pdf.pages:
             raw_text = []
-            media_box = page.mediabox
-
-            min_pt = media_box.lower_left
-            max_pt = media_box.upper_right
-
             page.extract_text(visitor_text=visitor)
             new_text = ' '.join(raw_text)
             text += new_text
         vendors += re.findall(get_vendor_name, text, re.DOTALL)
         vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
-        print(vendors, vendor_descriptions)
         keywords = ['ethics', 'compliance']
         vendors, vendor_descriptions = list(set(vendors)), list(set(vendor_descriptions))
         for i in range(len(vendors)):
