@@ -110,8 +110,8 @@ def get_competitor_mentions_information():
         entries = []
         vendors, vendor_descriptions = [], []
         text = ''
-        for page_num in range(len(pdf.pages)):
-            new_text = pdf.pages[page_num].extract_text()
+        for page in pdf.pages:
+            new_text = page.extract_text()
             k = 0
             for i in range(1, len(new_text)):
                 if text.endswith(new_text[:i]):
