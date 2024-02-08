@@ -112,11 +112,12 @@ def get_competitor_mentions_information():
         text = ''
         for page in pdf.pages:
             new_text = page.extract_text()
+            new_text = new_text.replace('\n', '')
+            new_text = ' '.join(new_text.split())
             k = 0
             for i in range(1, len(new_text)):
                 if text.endswith(new_text[:i]):
                     k = i
-            print(k)
             overlap_removed = new_text[k:]
             text += overlap_removed
         vendors += re.findall(get_vendor_name, text, re.DOTALL)
