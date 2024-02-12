@@ -74,10 +74,10 @@ def get_dataframe(xml_file, crypto=False, vendors=False):
             data['Crypto Mentions'].append(mentions)
 
         if vendors:
-            vendors = get_competitor_mentions_information(firm_info.attrib.get('FirmCrdNb'))
-            if not vendors:
+            competitor = get_competitor_mentions_information(firm_info.attrib.get('FirmCrdNb'))
+            if not competitor:
                 continue
-            data['Vendor Mentions'].append(vendors)
+            data['Vendor Mentions'].append(competitor)
 
         data['Main Website'].append(mainWebsite)
         data['Firm CRD Number'].append(firm_info.attrib.get('FirmCrdNb'))
@@ -128,18 +128,19 @@ def get_competitor_mentions_information(crd_num):
     vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
     keywords = [
         'ADVISER COMPLIANCE ASSOCIATES', 'complysci', 'orion', 'PTCC', 'MyComplianceOffice', 'BasisCode', 'Orion',
-        'gVue', 'Compliance Alpha', 'ComplianceAlpha', 'RegEd', 'Protegent', 'ACA', 'Outsource CCO', 'Aspect',
+        'gVue', 'Compliance Alpha', 'ComplianceAlpha', 'RegEd', 'Protegent', 'ACA ', 'Outsource CCO', 'Aspect',
         'Vigilant']
     for i in range(len(vendors)):
         if any(x.lower() in vendors[i].lower() for x in keywords):
             new_entry = {
-                'vendor_name': vendors[i],
-                'vendor_description': vendor_descriptions[i]
+                'vendor_name': vendors[i].replace('\n', ''),
+                'vendor_description': vendor_descriptions[i].replace('\n', '')
             }
             entries.append(new_entry)
     if len(entries) == 0:
         return None
-    return entries
+    print(entries)
+    return entries[0]
 
 
 def get_brochure_info(crd_num):
@@ -171,4 +172,4 @@ def get_brochure_info(crd_num):
     return crypto_mentions
 
 
-get_dataframe('SEC_DataDump.xml', vendors=True)
+get_dataframe('SEC Scraping/SEC_DataDump.xml', vendors=True)
