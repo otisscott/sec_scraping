@@ -11,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-def get_dataframe(xml_file, crypto=False):
+def get_dataframe(xml_file, crypto=False, vendors=False):
     # XML data (replace this with your actual XML data)
     with open(xml_file, 'rb') as f:
         xml_data = f.read()
@@ -28,6 +28,7 @@ def get_dataframe(xml_file, crypto=False):
         'AUM': [],
         'Main Website': [],
         'Crypto Mentions': [],
+        'Vendor Mentions': [],
         'Legal Name': [],
         'Address 1': [],
         'Address 2': [],
@@ -72,6 +73,12 @@ def get_dataframe(xml_file, crypto=False):
                 continue
             data['Crypto Mentions'].append(mentions)
 
+        if vendors:
+            vendors = get_competitor_mentions_information(firm_info.attrib.get('FirmCrdNb'))
+            if not vendors:
+                continue
+            data['Vendor Mentions'].append(vendors)
+
         data['Main Website'].append(mainWebsite)
         data['Firm CRD Number'].append(firm_info.attrib.get('FirmCrdNb'))
         data['Total Employees'].append(item5a.attrib.get('TtlEmp'))
@@ -93,44 +100,46 @@ def get_dataframe(xml_file, crypto=False):
     # Create DataFrame
     df = pd.DataFrame(data)
 
-    df.to_csv("RIA_Brochure_Crypto_Mentions.csv", sep='\t', encoding='utf-8')
+    df.to_csv("RIA_Brochure_Vendor_Mentions.csv", sep='\t', encoding='utf-8')
 
 
-def get_competitor_mentions_information():
+def get_competitor_mentions_information(crd_num):
     def visitor(content, cm, tm, font_dict, font_size):
         y = cm[5]
         if 0 < y < 1008:
             raw_text.append(content)
-    crd_lst = ['294670']
     base_url = 'https://reports.adviserinfo.sec.gov/reports/ADV/'
-    for crd_num in crd_lst:
-        url = f'{base_url}{crd_num}/PDF/{crd_num}.pdf'
-        r = requests.get(url, stream=True)
-        pdf = PdfReader(io.BytesIO(r.content))
-        get_vendor_name = r"Name of entity where books and records are kept:(.*?)Number and Street 1:"
-        get_vendor_description = r"Briefly describe the books and records kept at this location\.(.*?)(?:Name of entity where books and records are kept:|SECTION 1\.)"
+    url = f'{base_url}{crd_num}/PDF/{crd_num}.pdf'
+    r = requests.get(url, stream=True)
+    pdf = PdfReader(io.BytesIO(r.content))
+    get_vendor_name = r"Name of entity where books and records are kept:(.*?)Number and Street 1:"
+    get_vendor_description = r"Briefly describe the books and records kept at this location\.(.*?)(?:Name of entity where books and records are kept:|SECTION 1\.)"
 
-        # extract text and do the search
-        entries = []
-        vendors, vendor_descriptions = [], []
-        text = ''
-        for page in pdf.pages:
-            raw_text = []
-            page.extract_text(visitor_text=visitor)
-            new_text = ' '.join(raw_text)
-            text += new_text
-        vendors += re.findall(get_vendor_name, text, re.DOTALL)
-        vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
-        keywords = ['ethics', 'compliance']
-        vendors, vendor_descriptions = list(set(vendors)), list(set(vendor_descriptions))
-        for i in range(len(vendors)):
-            if any(x in vendor_descriptions[i].lower() for x in keywords):
-                new_entry = {
-                    'vendor_name': vendors[i],
-                    'vendor_description': vendor_descriptions[i]
-                }
-                entries.append(new_entry)
-        print(entries)
+    # extract text and do the search
+    entries = []
+    vendors, vendor_descriptions = [], []
+    text = ''
+    for page in pdf.pages:
+        raw_text = []
+        page.extract_text(visitor_text=visitor)
+        new_text = ' '.join(raw_text)
+        text += new_text
+    vendors += re.findall(get_vendor_name, text, re.DOTALL)
+    vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
+    keywords = [
+        'ADVISER COMPLIANCE ASSOCIATES', 'complysci', 'orion', 'PTCC', 'MyComplianceOffice', 'BasisCode', 'Orion',
+        'gVue', 'Compliance Alpha', 'ComplianceAlpha', 'RegEd', 'Protegent', 'ACA', 'Outsource CCO', 'Aspect',
+        'Vigilant']
+    for i in range(len(vendors)):
+        if any(x.lower() in vendors[i].lower() for x in keywords):
+            new_entry = {
+                'vendor_name': vendors[i],
+                'vendor_description': vendor_descriptions[i]
+            }
+            entries.append(new_entry)
+    if len(entries) == 0:
+        return None
+    return entries
 
 
 def get_brochure_info(crd_num):
@@ -162,5 +171,4 @@ def get_brochure_info(crd_num):
     return crypto_mentions
 
 
-# get_dataframe('SEC_DataDump.xml', crypto=True)
-get_competitor_mentions_information()
+get_dataframe('SEC_DataDump.xml', vendors=True)
