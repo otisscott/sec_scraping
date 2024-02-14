@@ -12,15 +12,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 def get_dataframe(xml_file, crypto=False, vendors=False):
-    # XML data (replace this with your actual XML data)
-    with open(xml_file, 'rb') as f:
-        xml_data = f.read()
-
-
-    # Parse the XML data
-    root = ET.fromstring(xml_data)
-
-    # Initialize lists to store data
     data = {
         'Firm CRD Number': [],
         'Business Name': [],
@@ -41,66 +32,84 @@ def get_dataframe(xml_file, crypto=False, vendors=False):
         'Status': [],
         'Date': []
     }
+    try:
+        # XML data (replace this with your actual XML data)
+        with open(xml_file, 'rb') as f:
+            xml_data = f.read()
 
-    # Extract data from XML elements
-    for firm in root.findall('.//Firm'):
-        firm_info = firm.find('Info')
-        main_addr = firm.find('MainAddr')
-        rgstn = firm.find('Rgstn')
-        item5a = firm.find('.//Item5A')
-        item5f = firm.find('.//Item5F')
-        item1 = firm.find('.//Item1')
-        if item5a.attrib.get('TtlEmp') is None:
-            continue
-        if int(item5a.attrib.get('TtlEmp')) < 5:
-            continue
-        mainWebsite = ''
-        if item1 is not None:
-            web_addrs = item1.find('WebAddrs')
-            if web_addrs is not None:
-                web_addr_elements = web_addrs.findall('WebAddr')
-                for web_addr_element in web_addr_elements:
-                    url = web_addr_element.text.lower()
-                    if 'twitter.com' not in url and 'facebook.com' not in url and 'linkedin.com' not in url and 'instagram.com' not in url:
-                        mainWebsite = url
-                        break  # Only consider the first valid website URL
-            else:
+
+        # Parse the XML data
+        root = ET.fromstring(xml_data)
+
+        # Extract data from XML elements
+        for firm in root.findall('.//Firm'):
+            firm_info = firm.find('Info')
+            main_addr = firm.find('MainAddr')
+            rgstn = firm.find('Rgstn')
+            item5a = firm.find('.//Item5A')
+            item5f = firm.find('.//Item5F')
+            item1 = firm.find('.//Item1')
+            if item5a.attrib.get('TtlEmp') is None:
                 continue
-
-        if crypto:
-            mentions = get_brochure_info(firm_info.attrib.get('FirmCrdNb'))
-            if mentions < 1:
+            if int(item5a.attrib.get('TtlEmp')) < 5:
                 continue
-            data['Crypto Mentions'].append(mentions)
+            mainWebsite = ''
+            if item1 is not None:
+                web_addrs = item1.find('WebAddrs')
+                if web_addrs is not None:
+                    web_addr_elements = web_addrs.findall('WebAddr')
+                    for web_addr_element in web_addr_elements:
+                        url = web_addr_element.text.lower()
+                        if 'twitter.com' not in url and 'facebook.com' not in url and 'linkedin.com' not in url and 'instagram.com' not in url:
+                            mainWebsite = url
+                            break  # Only consider the first valid website URL
+                else:
+                    continue
 
-        if vendors:
-            competitor = get_competitor_mentions_information(firm_info.attrib.get('FirmCrdNb'))
-            if not competitor:
-                continue
-            data['Vendor Mentions'].append(competitor)
+            if crypto:
+                mentions = get_brochure_info(firm_info.attrib.get('FirmCrdNb'))
+                if mentions < 1:
+                    continue
+                data['Crypto Mentions'].append(mentions)
 
-        data['Main Website'].append(mainWebsite)
-        data['Firm CRD Number'].append(firm_info.attrib.get('FirmCrdNb'))
-        data['Total Employees'].append(item5a.attrib.get('TtlEmp'))
-        data['AUM'].append(item5f.attrib.get('Q5F3'))
-        data['Business Name'].append(firm_info.attrib.get('BusNm'))
-        data['Legal Name'].append(firm_info.attrib.get('LegalNm'))
-        data['Address 1'].append(main_addr.attrib.get('Strt1'))
-        data['Address 2'].append(main_addr.attrib.get('Strt2'))
-        data['City'].append(main_addr.attrib.get('City'))
-        data['State'].append(main_addr.attrib.get('State'))
-        data['Country'].append(main_addr.attrib.get('Cntry'))
-        data['Postal Code'].append(main_addr.attrib.get('PostlCd'))
-        data['Phone Number'].append(main_addr.attrib.get('PhNb'))
-        data['Fax Number'].append(main_addr.attrib.get('FaxNb'))
-        data['Status'].append(rgstn.attrib.get('St'))
-        data['Date'].append(rgstn.attrib.get('Dt'))
+            if vendors:
+                competitor = get_competitor_mentions_information(firm_info.attrib.get('FirmCrdNb'))
+                if not competitor:
+                    continue
+                data['Vendor Mentions'].append(competitor)
+
+            data['Main Website'].append(mainWebsite)
+            data['Firm CRD Number'].append(firm_info.attrib.get('FirmCrdNb'))
+            data['Total Employees'].append(item5a.attrib.get('TtlEmp'))
+            data['AUM'].append(item5f.attrib.get('Q5F3'))
+            data['Business Name'].append(firm_info.attrib.get('BusNm'))
+            data['Legal Name'].append(firm_info.attrib.get('LegalNm'))
+            data['Address 1'].append(main_addr.attrib.get('Strt1'))
+            data['Address 2'].append(main_addr.attrib.get('Strt2'))
+            data['City'].append(main_addr.attrib.get('City'))
+            data['State'].append(main_addr.attrib.get('State'))
+            data['Country'].append(main_addr.attrib.get('Cntry'))
+            data['Postal Code'].append(main_addr.attrib.get('PostlCd'))
+            data['Phone Number'].append(main_addr.attrib.get('PhNb'))
+            data['Fax Number'].append(main_addr.attrib.get('FaxNb'))
+            data['Status'].append(rgstn.attrib.get('St'))
+            data['Date'].append(rgstn.attrib.get('Dt'))
 
 
-    # Create DataFrame
-    df = pd.DataFrame(data)
+        # Create DataFrame
+        df = pd.DataFrame(data)
 
-    df.to_csv("RIA_Brochure_Vendor_Mentions.csv", sep='\t', encoding='utf-8')
+        df.to_csv("RIA_Brochure_Vendor_Mentions.csv", sep='\t', encoding='utf-8')
+
+    except KeyboardInterrupt:
+        df = pd.DataFrame(data)
+
+        df.to_csv("RIA_Brochure_Vendor_Mentions_Incomplete.csv", sep='\t', encoding='utf-8')
+
+    except ConnectionError:
+        df = pd.DataFrame(data)
+
+        df.to_csv("RIA_Brochure_Vendor_Mentions_Incomplete.csv", sep='\t', encoding='utf-8')
 
 
 def get_competitor_mentions_information(crd_num):
