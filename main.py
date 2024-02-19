@@ -11,14 +11,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-def get_dataframe(xml_file, crypto=False, vendors=False):
+def get_dataframe(xml_file, crypto=False, vendors=False, initial_data=None):
+    is_last_entry = False
+    if initial_data:
+        with open(initial_data, 'rb') as f:
+            csv_data = f.read()
+        initial_data = pd.read_csv(io.BytesIO(csv_data), sep='\t')
+        last_entry = initial_data['Firm CRD Number'].iloc[-1]
     data = {
         'Firm CRD Number': [],
         'Business Name': [],
         'Total Employees': [],
         'AUM': [],
         'Main Website': [],
-        'Crypto Mentions': [],
+        # 'Crypto Mentions': [],
         'Vendor Mentions': [],
         'Legal Name': [],
         'Address 1': [],
@@ -42,7 +48,14 @@ def get_dataframe(xml_file, crypto=False, vendors=False):
         root = ET.fromstring(xml_data)
 
         # Extract data from XML elements
+        is_last_entry = False
         for firm in root.findall('.//Firm'):
+            if initial_data is not None:
+                if not is_last_entry:
+                    if firm.find('Info').attrib.get('FirmCrdNb') != str(last_entry):
+                        continue
+                    else:
+                        is_last_entry = True
             firm_info = firm.find('Info')
             main_addr = firm.find('MainAddr')
             rgstn = firm.find('Rgstn')
@@ -81,7 +94,7 @@ def get_dataframe(xml_file, crypto=False, vendors=False):
             data['Main Website'].append(mainWebsite)
             data['Firm CRD Number'].append(firm_info.attrib.get('FirmCrdNb'))
             data['Total Employees'].append(item5a.attrib.get('TtlEmp'))
-            data['AUM'].append(item5f.attrib.get('Q5F3'))
+            data['AUM'].append(item5f.attrib.get('Q5F2C'))
             data['Business Name'].append(firm_info.attrib.get('BusNm'))
             data['Legal Name'].append(firm_info.attrib.get('LegalNm'))
             data['Address 1'].append(main_addr.attrib.get('Strt1'))
@@ -98,11 +111,15 @@ def get_dataframe(xml_file, crypto=False, vendors=False):
 
         # Create DataFrame
         df = pd.DataFrame(data)
+        if initial_data is not False:
+            df = pd.concat([initial_data, df], ignore_index=True)
 
         df.to_csv("RIA_Brochure_Vendor_Mentions.csv", sep='\t', encoding='utf-8')
 
     except KeyboardInterrupt:
         df = pd.DataFrame(data)
+        if initial_data is not False:
+            df = pd.concat([initial_data, df], ignore_index=True)
 
         df.to_csv("RIA_Brochure_Vendor_Mentions_Incomplete.csv", sep='\t', encoding='utf-8')
 
@@ -136,7 +153,7 @@ def get_competitor_mentions_information(crd_num):
     vendors += re.findall(get_vendor_name, text, re.DOTALL)
     vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
     keywords = [
-        'ADVISER COMPLIANCE ASSOCIATES', 'complysci', 'orion', 'PTCC', 'MyComplianceOffice', 'BasisCode', 'Orion',
+        'Adviser Compliance Associates', 'Complysci', 'Orion', 'PTCC', 'MyComplianceOffice', 'BasisCode', 'Orion',
         'gVue', 'Compliance Alpha', 'ComplianceAlpha', 'RegEd', 'Protegent', 'ACA ', 'Outsource CCO', 'Aspect',
         'Vigilant']
     for i in range(len(vendors)):
@@ -180,5 +197,5 @@ def get_brochure_info(crd_num):
     print(crypto_mentions)
     return crypto_mentions
 
-
-get_dataframe('SEC Scraping/SEC_DataDump.xml', vendors=True)
+if __name__ == '__main__':
+    get_dataframe('SEC Scraping/SEC_DataDump.xml', vendors=True, initial_data='SEC Scraping/RIA_Brochure_Vendor_Mentions_Incomplete.csv')

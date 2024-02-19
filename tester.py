@@ -1,32 +1,66 @@
 import requests, io, re
-from pypdf import PdfReader
+import pandas as pd
+import ast
 
+with open('SEC Scraping/RIA_Brochure_Vendor_Mentions_Incomplete.csv', 'rb') as f:
+    csv_data = f.read()
 
-def get_competitor_mentions_information():
-    crd_lst = ['109330', '294670']
-    base_url = 'https://reports.adviserinfo.sec.gov/reports/ADV/'
-    for crd_num in crd_lst:
-        url = f'{base_url}{crd_num}/PDF/{crd_num}.pdf'
-        r = requests.get(url, stream=True)
-        pdf = PdfReader(io.BytesIO(r.content))
-        get_vendor_name = r"Name of entity where books and records are kept:(.*?)Number and Street 1:"
-        get_vendor_description = r"Briefly describe the books and records kept at this location\.(.*?)(?:Name of entity where books and records are kept:|SECTION 1\.)"
+firm_data = pd.read_csv(io.BytesIO(csv_data), sep='\t', header=0)
 
-        # extract text and do the search
-        entries = []
-        vendors, vendor_descriptions = [], []
-        text = ''
-        for page in pdf.pages:
-            text += page.extract_text()
-        vendors += re.findall(get_vendor_name, text, re.DOTALL)
-        vendor_descriptions += re.findall(get_vendor_description, text, re.DOTALL)
-        keywords = ['ethics', 'compliance']
-        print(vendors, vendor_descriptions)
-        for i in range(len(vendors)):
-            if any(x in vendor_descriptions[i].lower() for x in keywords):
-                new_entry = {
-                    'vendor_name': vendors[i],
-                    'vendor_description': vendor_descriptions[i]
-                }
-                entries.append(new_entry)
-        print(entries)
+keywords = [
+        'Adviser Compliance Associates', 'ComplySci', 'Orion', 'PTCC', 'MyComplianceOffice', 'BasisCode', 'Orion',
+        'gVue', 'Compliance Alpha', 'ComplianceAlpha', 'RegEd', 'Protegent', 'ACA ', 'Outsource CCO', 'Aspect',
+        'Vigilant']
+
+data = {
+        'Firm CRD Number': [],
+        'Business Name': [],
+        'Total Employees': [],
+        'AUM': [],
+        'Main Website': [],
+        # 'Crypto Mentions': [],
+        'Vendor': [],
+        'Vendor Descriptions': [],
+        'Legal Name': [],
+        'Address 1': [],
+        'Address 2': [],
+        'City': [],
+        'State': [],
+        'Country': [],
+        'Postal Code': [],
+        'Phone Number': [],
+        'Fax Number': [],
+        'Status': [],
+        'Date': []
+}
+
+for index, row in firm_data.iterrows():
+    data['Main Website'].append(row['Main Website'])
+    data['Firm CRD Number'].append(row['Firm CRD Number'])
+    data['Total Employees'].append(row['Total Employees'])
+    data['AUM'].append(row['AUM'])
+    data['Business Name'].append(row['Business Name'])
+    data['Legal Name'].append(row['Legal Name'])
+    data['Address 1'].append(row['Address 1'])
+    data['Address 2'].append(row['Address 2'])
+    data['City'].append(row['City'])
+    data['State'].append(row['State'])
+    data['Country'].append(row['Country'])
+    data['Postal Code'].append(row['Postal Code'])
+    data['Phone Number'].append(row['Phone Number'])
+    data['Fax Number'].append(row['Fax Number'])
+    data['Status'].append(row['Status'])
+    data['Date'].append(row['Date'])
+
+    vendor_info = ast.literal_eval(row['Vendor Mentions'])
+
+    for keyword in keywords:
+        if keyword.lower() in vendor_info['vendor_name'].lower():
+            data['Vendor'].append(keyword)
+            data['Vendor Descriptions'].append(vendor_info['vendor_description'])
+            print(row['Business Name'],vendor_info)
+            break
+
+df = pd.DataFrame(data)
+
+# df.to_csv("RIA_Brochure_Vendor_Mentions_Incomplete_Normalized.csv", sep='\t', encoding='utf-8')
