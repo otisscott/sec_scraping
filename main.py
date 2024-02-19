@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+from tqdm import tqdm
 import pandas as pd
 import requests, io, re
 from pypdf import PdfReader
@@ -13,6 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def get_dataframe(xml_file, crypto=False, vendors=False, initial_data=None):
     is_last_entry = False
+    last_entry = None
     if initial_data:
         with open(initial_data, 'rb') as f:
             csv_data = f.read()
@@ -48,8 +50,7 @@ def get_dataframe(xml_file, crypto=False, vendors=False, initial_data=None):
         root = ET.fromstring(xml_data)
 
         # Extract data from XML elements
-        is_last_entry = False
-        for firm in root.findall('.//Firm'):
+        for firm in tqdm(root.findall('.//Firm')):
             if initial_data is not None:
                 if not is_last_entry:
                     if firm.find('Info').attrib.get('FirmCrdNb') != str(last_entry):
