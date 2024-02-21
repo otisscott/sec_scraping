@@ -63,4 +63,4 @@ for index, row in firm_data.iterrows():
 
 df = pd.DataFrame(data)
 
-# df.to_csv("RIA_Brochure_Vendor_Mentions_Incomplete_Normalized.csv", sep='\t', encoding='utf-8')
+df.to_csv("RIA_Brochure_Vendor_Mentions_Incomplete_Normalized.csv", sep='\t', encoding='utf-8')

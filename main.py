@@ -57,6 +57,7 @@ def get_dataframe(xml_file, crypto=False, vendors=False, initial_data=None):
                         continue
                     else:
                         is_last_entry = True
+                        continue
             firm_info = firm.find('Info')
             main_addr = firm.find('MainAddr')
             rgstn = firm.find('Rgstn')
@@ -74,7 +75,9 @@ def get_dataframe(xml_file, crypto=False, vendors=False, initial_data=None):
                     web_addr_elements = web_addrs.findall('WebAddr')
                     for web_addr_element in web_addr_elements:
                         url = web_addr_element.text.lower()
-                        if 'twitter.com' not in url and 'facebook.com' not in url and 'linkedin.com' not in url and 'instagram.com' not in url:
+                        if ('twitter.com' not in url and 'facebook.com' not in url and 'linkedin.com' not in url and
+                                'instagram.com' not in url and 'youtube.com' not in url and 'google.com' not in url
+                                and 'vimeo.com' not in url):
                             mainWebsite = url
                             break  # Only consider the first valid website URL
                 else:
@@ -138,7 +141,11 @@ def get_competitor_mentions_information(crd_num):
     base_url = 'https://reports.adviserinfo.sec.gov/reports/ADV/'
     url = f'{base_url}{crd_num}/PDF/{crd_num}.pdf'
     r = requests.get(url, stream=True)
-    pdf = PdfReader(io.BytesIO(r.content))
+    try:
+        pdf = PdfReader(io.BytesIO(r.content))
+    except Exception as e:
+        print(e)
+        return None
     get_vendor_name = r"Name of entity where books and records are kept:(.*?)Number and Street 1:"
     get_vendor_description = r"Briefly describe the books and records kept at this location\.(.*?)(?:Name of entity where books and records are kept:|SECTION 1\.)"
 
